@@ -2,78 +2,46 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>NEON PONG ONLINE</title>
+    <title>NEON PONG ONLINE (Lag Fix)</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body { 
-            background-color: #050505; 
-            color: #fff; 
-            text-align: center; 
-            font-family: 'Orbitron', sans-serif; 
-            margin: 0; 
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            background-color: #050505; color: #fff; text-align: center; 
+            font-family: 'Orbitron', sans-serif; margin: 0; height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden;
         }
 
-        /* 깔끔해진 접속 UI 창 */
         #setup { 
-            background: rgba(10, 20, 30, 0.8); 
-            border: 2px solid #0ff; 
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); 
-            padding: 40px; 
-            border-radius: 15px; 
-            backdrop-filter: blur(5px);
+            background: rgba(10, 20, 30, 0.8); border: 2px solid #0ff; 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); padding: 40px; 
+            border-radius: 15px; backdrop-filter: blur(5px);
         }
         
         h1 { margin-top: 0; color: #fff; text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; letter-spacing: 3px; }
 
         input { 
-            background: transparent; 
-            border: none; 
-            border-bottom: 2px solid #f0f; 
-            color: #fff; 
-            font-family: 'Orbitron', sans-serif; 
-            font-size: 18px; 
-            padding: 10px; 
-            width: 250px;
-            text-align: center; 
-            outline: none; 
-            margin-bottom: 25px;
-            text-shadow: 0 0 5px #f0f;
+            background: transparent; border: none; border-bottom: 2px solid #f0f; 
+            color: #fff; font-family: 'Orbitron', sans-serif; font-size: 18px; 
+            padding: 10px; width: 250px; text-align: center; outline: none; 
+            margin-bottom: 25px; text-shadow: 0 0 5px #f0f;
         }
 
         button { 
-            background: transparent; 
-            border: 2px solid #0ff; 
-            color: #0ff; 
-            padding: 12px 20px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            font-family: 'Orbitron', sans-serif; 
-            font-weight: bold; 
-            border-radius: 8px;
-            transition: all 0.3s; 
-            text-shadow: 0 0 5px #0ff;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) inset;
-            margin: 0 10px;
+            background: transparent; border: 2px solid #0ff; color: #0ff; 
+            padding: 12px 20px; font-size: 16px; cursor: pointer; 
+            font-family: 'Orbitron', sans-serif; font-weight: bold; 
+            border-radius: 8px; transition: all 0.3s; text-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) inset; margin: 0 10px;
         }
         button:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
         
         .btn-guest { border-color: #f0f; color: #f0f; text-shadow: 0 0 5px #f0f; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3) inset; }
         .btn-guest:hover { background: #f0f; color: #000; box-shadow: 0 0 20px #f0f; }
 
-        /* 네온 캔버스 */
         canvas { 
-            background-color: #020202; 
-            border: 2px solid #333; 
-            border-radius: 10px; 
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1); 
-            display: none; 
+            background-color: #020202; border: 2px solid #333; 
+            border-radius: 10px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.1); display: none; 
         }
         
         #status { color: #ffeb3b; margin-top: 15px; font-size: 14px; text-shadow: 0 0 5px #ffeb3b; height: 20px;}
@@ -100,13 +68,11 @@
         let isHost = false;
         let gameActive = false;
 
-        // 게임 변수
         const paddleSpeed = 8;
-        const p1 = { x: 20, y: 150, width: 12, height: 90, score: 0, color: "#0ff" }; // Cyan
-        const p2 = { x: 768, y: 150, width: 12, height: 90, score: 0, color: "#f0f" }; // Magenta
-        const ball = { x: 400, y: 200, r: 10, dx: 7, dy: 7, speed: 7, color: "#ff0" }; // Yellow
+        const p1 = { x: 20, y: 150, width: 12, height: 90, score: 0, color: "#0ff" }; 
+        const p2 = { x: 768, y: 150, width: 12, height: 90, score: 0, color: "#f0f" }; 
+        const ball = { x: 400, y: 200, r: 10, dx: 7, dy: 7, speed: 7, color: "#ff0" }; 
 
-        // 키보드 입력 상태 저장
         const keys = {};
         window.addEventListener("keydown", e => { keys[e.key] = true; });
         window.addEventListener("keyup", e => { keys[e.key] = false; });
@@ -116,7 +82,7 @@
             if (!roomName) return alert("방 이름을 입력하세요!");
 
             isHost = hostRole;
-            room = "neon-pong/" + roomName;
+            room = "neon-pong-smooth/" + roomName;
             
             document.getElementById("status").innerText = "서버 연결 중...";
 
@@ -136,27 +102,37 @@
                 const data = JSON.parse(message.toString());
                 
                 if (isHost && topic === room + '/guest') {
-                    p2.y = data.p2y; // 방장은 손님의 위치만 받음
+                    p2.y = data.p2y; 
                 } 
                 else if (!isHost && topic === room + '/host') {
-                    // 손님은 방장이 계산한 모든 물리 결과를 받음
                     p1.y = data.p1y;
-                    ball.x = data.bx;
-                    ball.y = data.by;
+                    
+                    // 핵심: 손님도 공의 '방향(dx, dy)'을 받아서 스스로 움직임
+                    ball.dx = data.bdx;
+                    ball.dy = data.bdy;
+                    
+                    // 오차가 20픽셀 이상 크게 벌어졌을 때만 위치 강제 동기화 (부드러움 유지)
+                    if (Math.abs(ball.x - data.bx) > 20 || Math.abs(ball.y - data.by) > 20) {
+                        ball.x = data.bx;
+                        ball.y = data.by;
+                    }
+
                     p1.score = data.s1;
                     p2.score = data.s2;
                 }
             });
 
-            // 1초에 30번 상태 전송
+            // 데이터를 조금 덜 보내도 부드럽게 돌아가도록 초당 20번만 전송 (서버 과부하 방지)
             setInterval(() => {
                 if (!gameActive) return;
                 if (isHost) {
-                    client.publish(room + '/host', JSON.stringify({ p1y: p1.y, bx: ball.x, by: ball.y, s1: p1.score, s2: p2.score }));
+                    client.publish(room + '/host', JSON.stringify({ 
+                        p1y: p1.y, bx: ball.x, by: ball.y, bdx: ball.dx, bdy: ball.dy, s1: p1.score, s2: p2.score 
+                    }));
                 } else {
                     client.publish(room + '/guest', JSON.stringify({ p2y: p2.y }));
                 }
-            }, 1000/30);
+            }, 1000/20);
         }
 
         function resetBall() {
@@ -166,88 +142,72 @@
             ball.dy = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
         }
 
-        // 키보드 움직임 처리
         function handleInput() {
-            // 위 방향키 (또는 W)
             if (keys["ArrowUp"] || keys["w"] || keys["W"]) {
                 if (isHost && p1.y > 0) p1.y -= paddleSpeed;
                 if (!isHost && p2.y > 0) p2.y -= paddleSpeed;
             }
-            // 아래 방향키 (또는 S)
             if (keys["ArrowDown"] || keys["s"] || keys["S"]) {
                 if (isHost && p1.y < canvas.height - p1.height) p1.y += paddleSpeed;
                 if (!isHost && p2.y < canvas.height - p2.height) p2.y += paddleSpeed;
             }
         }
 
-        // 물리 엔진 (방장만 계산)
         function updatePhysics() {
             ball.x += ball.dx;
             ball.y += ball.dy;
 
-            // 위아래 벽 충돌
             if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.dy *= -1;
 
-            // 왼쪽 패들 충돌
             if (ball.x - ball.r < p1.x + p1.width && ball.y > p1.y && ball.y < p1.y + p1.height) {
-                ball.dx = Math.abs(ball.dx) + 0.3; // 맞출 때마다 속도 살짝 증가
+                ball.dx = Math.abs(ball.dx) + 0.3; 
                 ball.x = p1.x + p1.width + ball.r; 
             }
 
-            // 오른쪽 패들 충돌
             if (ball.x + ball.r > p2.x && ball.y > p2.y && ball.y < p2.y + p2.height) {
                 ball.dx = -Math.abs(ball.dx) - 0.3;
                 ball.x = p2.x - ball.r;
             }
 
-            // 점수 판정
             if (ball.x < 0) { p2.score++; resetBall(); }
             else if (ball.x > canvas.width) { p1.score++; resetBall(); }
         }
 
-        // 네온 이펙트를 적용하여 그리는 함수
         function drawNeonRect(x, y, w, h, color) {
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = color;
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, w, h);
-            ctx.shadowBlur = 0; // 초기화
+            ctx.shadowBlur = 20; ctx.shadowColor = color; ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0; 
         }
 
         function drawNeonCircle(x, y, r, color) {
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = color;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
         }
 
         function draw() {
-            handleInput(); // 키보드 입력 매 프레임 감지
-            if (isHost) updatePhysics(); // 방장이면 공의 위치 업데이트
+            handleInput(); 
+            
+            if (isHost) {
+                updatePhysics(); // 방장은 완전한 물리 계산
+            } else {
+                // 손님도 자기가 받은 속도(dx, dy)를 이용해 60FPS로 부드럽게 공을 굴림
+                ball.x += ball.dx;
+                ball.y += ball.dy;
+                // 위아래 벽 튕김은 손님 화면에서도 예측해서 처리
+                if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.dy *= -1;
+            }
 
-            // 화면 지우기 (잔상 효과 약간 추가)
             ctx.fillStyle = "rgba(2, 2, 2, 0.5)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 중앙 점선
             ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-            for (let i = 0; i <= canvas.height; i += 40) {
-                ctx.fillRect(canvas.width / 2 - 2, i, 4, 20);
-            }
+            for (let i = 0; i <= canvas.height; i += 40) ctx.fillRect(canvas.width / 2 - 2, i, 4, 20);
 
-            // 점수 표시 (네온 효과)
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#fff";
-            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
             ctx.font = "bold 60px Orbitron";
             ctx.fillText(p1.score, canvas.width / 4 - 30, 80);
             ctx.fillText(p2.score, 3 * canvas.width / 4 - 30, 80);
             ctx.shadowBlur = 0;
 
-            // 플레이어 & 공 그리기
             drawNeonRect(p1.x, p1.y, p1.width, p1.height, p1.color);
             drawNeonRect(p2.x, p2.y, p2.width, p2.height, p2.color);
             drawNeonCircle(ball.x, ball.y, ball.r, ball.color);
