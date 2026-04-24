@@ -2,24 +2,90 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>온라인 리얼 핑퐁</title>
+    <title>NEON PONG ONLINE</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #111; color: #fff; text-align: center; font-family: 'Courier New', Courier, monospace; margin: 0; padding-top: 30px; user-select: none; }
-        #setup { margin-bottom: 20px; }
-        input { padding: 10px; font-size: 16px; width: 200px; text-align: center; border-radius: 0; border: 2px solid #fff; background: #000; color: #fff; }
-        button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; font-weight: bold; background: #fff; color: #000; border: 2px solid #fff; transition: 0.2s; }
-        button:hover { background: #000; color: #fff; }
-        canvas { background-color: #000; border: 4px solid #fff; display: none; margin: 0 auto; box-shadow: 0 0 20px rgba(255,255,255,0.2); touch-action: none; }
-        #status { color: #0f0; margin-top: 10px; font-size: 18px; }
+        body { 
+            background-color: #050505; 
+            color: #fff; 
+            text-align: center; 
+            font-family: 'Orbitron', sans-serif; 
+            margin: 0; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 깔끔해진 접속 UI 창 */
+        #setup { 
+            background: rgba(10, 20, 30, 0.8); 
+            border: 2px solid #0ff; 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); 
+            padding: 40px; 
+            border-radius: 15px; 
+            backdrop-filter: blur(5px);
+        }
+        
+        h1 { margin-top: 0; color: #fff; text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; letter-spacing: 3px; }
+
+        input { 
+            background: transparent; 
+            border: none; 
+            border-bottom: 2px solid #f0f; 
+            color: #fff; 
+            font-family: 'Orbitron', sans-serif; 
+            font-size: 18px; 
+            padding: 10px; 
+            width: 250px;
+            text-align: center; 
+            outline: none; 
+            margin-bottom: 25px;
+            text-shadow: 0 0 5px #f0f;
+        }
+
+        button { 
+            background: transparent; 
+            border: 2px solid #0ff; 
+            color: #0ff; 
+            padding: 12px 20px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-family: 'Orbitron', sans-serif; 
+            font-weight: bold; 
+            border-radius: 8px;
+            transition: all 0.3s; 
+            text-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) inset;
+            margin: 0 10px;
+        }
+        button:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
+        
+        .btn-guest { border-color: #f0f; color: #f0f; text-shadow: 0 0 5px #f0f; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3) inset; }
+        .btn-guest:hover { background: #f0f; color: #000; box-shadow: 0 0 20px #f0f; }
+
+        /* 네온 캔버스 */
+        canvas { 
+            background-color: #020202; 
+            border: 2px solid #333; 
+            border-radius: 10px; 
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1); 
+            display: none; 
+        }
+        
+        #status { color: #ffeb3b; margin-top: 15px; font-size: 14px; text-shadow: 0 0 5px #ffeb3b; height: 20px;}
     </style>
 </head>
 <body>
     <div id="setup">
-        <h1>ARCADE PONG</h1>
-        <input type="text" id="roomInput" placeholder="방 이름 (예: pong123)"><br><br>
-        <button onclick="startGame(true)">방 만들기 (왼쪽/방장)</button>
-        <button onclick="startGame(false)">접속하기 (오른쪽/손님)</button>
+        <h1>NEON PONG</h1>
+        <input type="text" id="roomInput" placeholder="방 이름 입력 (ex: neon1)">
+        <br>
+        <button onclick="startGame(true)">방장 접속 (왼쪽)</button>
+        <button class="btn-guest" onclick="startGame(false)">손님 접속 (오른쪽)</button>
         <div id="status"></div>
     </div>
 
@@ -34,42 +100,34 @@
         let isHost = false;
         let gameActive = false;
 
-        // 게임 변수 세팅
-        let myY = 150;
-        const p1 = { x: 20, y: 150, width: 10, height: 100, score: 0 };
-        const p2 = { x: 770, y: 150, width: 10, height: 100, score: 0 };
-        const ball = { x: 400, y: 200, r: 8, dx: 6, dy: 6, speed: 6 };
+        // 게임 변수
+        const paddleSpeed = 8;
+        const p1 = { x: 20, y: 150, width: 12, height: 90, score: 0, color: "#0ff" }; // Cyan
+        const p2 = { x: 768, y: 150, width: 12, height: 90, score: 0, color: "#f0f" }; // Magenta
+        const ball = { x: 400, y: 200, r: 10, dx: 7, dy: 7, speed: 7, color: "#ff0" }; // Yellow
 
-        // 조작 (마우스 & 터치 모두 지원)
-        function movePaddle(yPos) {
-            const rect = canvas.getBoundingClientRect();
-            let newY = yPos - rect.top - (p1.height / 2);
-            if(newY < 0) newY = 0;
-            if(newY > canvas.height - p1.height) newY = canvas.height - p1.height;
-            myY = newY;
-        }
-
-        canvas.addEventListener("mousemove", (e) => movePaddle(e.clientY));
-        canvas.addEventListener("touchmove", (e) => {
-            movePaddle(e.touches[0].clientY);
-            e.preventDefault(); // 모바일 화면 스크롤 방지
-        }, {passive: false});
+        // 키보드 입력 상태 저장
+        const keys = {};
+        window.addEventListener("keydown", e => { keys[e.key] = true; });
+        window.addEventListener("keyup", e => { keys[e.key] = false; });
 
         function startGame(hostRole) {
             const roomName = document.getElementById("roomInput").value.trim();
             if (!roomName) return alert("방 이름을 입력하세요!");
 
             isHost = hostRole;
-            room = "github-game/pong/" + roomName;
+            room = "neon-pong/" + roomName;
             
-            document.getElementById("setup").style.display = "none";
-            canvas.style.display = "block";
+            document.getElementById("status").innerText = "서버 연결 중...";
 
             client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
             
             client.on('connect', () => {
                 client.subscribe(room + '/host');
                 client.subscribe(room + '/guest');
+                
+                document.getElementById("setup").style.display = "none";
+                canvas.style.display = "block";
                 gameActive = true;
                 requestAnimationFrame(draw);
             });
@@ -78,11 +136,10 @@
                 const data = JSON.parse(message.toString());
                 
                 if (isHost && topic === room + '/guest') {
-                    // 방장은 손님의 패들 위치만 받음
-                    p2.y = data.p2y;
+                    p2.y = data.p2y; // 방장은 손님의 위치만 받음
                 } 
                 else if (!isHost && topic === room + '/host') {
-                    // 손님은 방장이 계산한 모든 물리 결과값을 받음
+                    // 손님은 방장이 계산한 모든 물리 결과를 받음
                     p1.y = data.p1y;
                     ball.x = data.bx;
                     ball.y = data.by;
@@ -91,17 +148,15 @@
                 }
             });
 
-            // 초당 약 30회 통신 (너무 잦은 통신으로 인한 서버 딜레이 방지)
+            // 1초에 30번 상태 전송
             setInterval(() => {
                 if (!gameActive) return;
                 if (isHost) {
-                    client.publish(room + '/host', JSON.stringify({ 
-                        p1y: p1.y, bx: ball.x, by: ball.y, s1: p1.score, s2: p2.score 
-                    }));
+                    client.publish(room + '/host', JSON.stringify({ p1y: p1.y, bx: ball.x, by: ball.y, s1: p1.score, s2: p2.score }));
                 } else {
                     client.publish(room + '/guest', JSON.stringify({ p2y: p2.y }));
                 }
-            }, 30);
+            }, 1000/30);
         }
 
         function resetBall() {
@@ -111,27 +166,37 @@
             ball.dy = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
         }
 
-        // 방장 전용 물리 연산
+        // 키보드 움직임 처리
+        function handleInput() {
+            // 위 방향키 (또는 W)
+            if (keys["ArrowUp"] || keys["w"] || keys["W"]) {
+                if (isHost && p1.y > 0) p1.y -= paddleSpeed;
+                if (!isHost && p2.y > 0) p2.y -= paddleSpeed;
+            }
+            // 아래 방향키 (또는 S)
+            if (keys["ArrowDown"] || keys["s"] || keys["S"]) {
+                if (isHost && p1.y < canvas.height - p1.height) p1.y += paddleSpeed;
+                if (!isHost && p2.y < canvas.height - p2.height) p2.y += paddleSpeed;
+            }
+        }
+
+        // 물리 엔진 (방장만 계산)
         function updatePhysics() {
-            p1.y = myY; // 내 패들 위치 적용
-            
             ball.x += ball.dx;
             ball.y += ball.dy;
 
             // 위아래 벽 충돌
-            if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) {
-                ball.dy *= -1;
-            }
+            if (ball.y - ball.r < 0 || ball.y + ball.r > canvas.height) ball.dy *= -1;
 
             // 왼쪽 패들 충돌
             if (ball.x - ball.r < p1.x + p1.width && ball.y > p1.y && ball.y < p1.y + p1.height) {
-                ball.dx = Math.abs(ball.dx) + 0.5; // 맞출 때마다 속도 증가
-                ball.x = p1.x + p1.width + ball.r; // 끼임 방지
+                ball.dx = Math.abs(ball.dx) + 0.3; // 맞출 때마다 속도 살짝 증가
+                ball.x = p1.x + p1.width + ball.r; 
             }
 
             // 오른쪽 패들 충돌
             if (ball.x + ball.r > p2.x && ball.y > p2.y && ball.y < p2.y + p2.height) {
-                ball.dx = -Math.abs(ball.dx) - 0.5;
+                ball.dx = -Math.abs(ball.dx) - 0.3;
                 ball.x = p2.x - ball.r;
             }
 
@@ -140,41 +205,52 @@
             else if (ball.x > canvas.width) { p1.score++; resetBall(); }
         }
 
-        function drawRect(x, y, w, h, color) {
+        // 네온 이펙트를 적용하여 그리는 함수
+        function drawNeonRect(x, y, w, h, color) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = color;
             ctx.fillStyle = color;
             ctx.fillRect(x, y, w, h);
+            ctx.shadowBlur = 0; // 초기화
         }
 
-        function drawText(text, x, y) {
-            ctx.fillStyle = "#FFF";
-            ctx.font = "50px Courier New";
-            ctx.fillText(text, x, y);
+        function drawNeonCircle(x, y, r, color) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = color;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
         }
 
         function draw() {
-            if (isHost) updatePhysics();
-            else p2.y = myY; // 손님일 때는 내 패들을 오른쪽으로 동기화
+            handleInput(); // 키보드 입력 매 프레임 감지
+            if (isHost) updatePhysics(); // 방장이면 공의 위치 업데이트
 
-            // 화면 지우기 (배경)
-            drawRect(0, 0, canvas.width, canvas.height, "#000");
+            // 화면 지우기 (잔상 효과 약간 추가)
+            ctx.fillStyle = "rgba(2, 2, 2, 0.5)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 중앙 점선
-            for (let i = 0; i <= canvas.height; i += 30) {
-                drawRect(canvas.width / 2 - 2, i, 4, 15, "#fff");
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            for (let i = 0; i <= canvas.height; i += 40) {
+                ctx.fillRect(canvas.width / 2 - 2, i, 4, 20);
             }
 
-            // 점수 표시
-            drawText(p1.score, canvas.width / 4, 80);
-            drawText(p2.score, 3 * canvas.width / 4, 80);
+            // 점수 표시 (네온 효과)
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#fff";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.font = "bold 60px Orbitron";
+            ctx.fillText(p1.score, canvas.width / 4 - 30, 80);
+            ctx.fillText(p2.score, 3 * canvas.width / 4 - 30, 80);
+            ctx.shadowBlur = 0;
 
-            // 패들과 공 그리기
-            drawRect(p1.x, p1.y, p1.width, p1.height, "#fff");
-            drawRect(p2.x, p2.y, p2.width, p2.height, "#fff");
-            
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-            ctx.fillStyle = "#fff";
-            ctx.fill();
+            // 플레이어 & 공 그리기
+            drawNeonRect(p1.x, p1.y, p1.width, p1.height, p1.color);
+            drawNeonRect(p2.x, p2.y, p2.width, p2.height, p2.color);
+            drawNeonCircle(ball.x, ball.y, ball.r, ball.color);
 
             requestAnimationFrame(draw);
         }
